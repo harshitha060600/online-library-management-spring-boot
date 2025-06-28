@@ -2,16 +2,15 @@ package com.hk.onlineLibraryManagement.models;
 
 import java.util.Date;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 
 @Data
@@ -28,14 +27,26 @@ public class Book {
 	
 	@Column
 	private String bookName;
+
+	@Enumerated(EnumType.STRING) // EnumType.ORDINAL is not recommended because it stores emun constants as numbers and later if we change the order of enum constants then data becomes in correct
+	private Genre genre;
 	
-	@Column
+	@ManyToOne
+	@JoinColumn
+	@JsonIgnoreProperties("bookList")
+//	@JsonIgnore
 	private Author author;
-	
-	
+
+	@CreationTimestamp
 	private Date createdOn;
-	
+
+	@UpdateTimestamp
 	private Date updatedOn;
+
+	@ManyToOne
+	@JoinColumn
+	@JsonIgnoreProperties("issuedBooks")
+	private Student student;
 	
 	
 	

@@ -1,23 +1,35 @@
 package com.hk.onlineLibraryManagement.models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.util.Date;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "author_table")
 public class Author {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private String authorEmail;
-	
+	private Long authorId;
+
 	private String authorName;
+
+	@Column(unique=true)
+	private String authorEmail;
+
+	@CreationTimestamp
+	private Date createdOn;
+
+	@OneToMany(mappedBy = "author")
+	@JsonIgnoreProperties("author")
+	private List<Book> bookList;
+	
+
 }
