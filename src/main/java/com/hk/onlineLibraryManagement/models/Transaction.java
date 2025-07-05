@@ -22,6 +22,8 @@ public class Transaction {
 
     private String externalId;
 
+    private Integer fine;
+
     @ManyToOne
     @JoinColumn
     private Book book;

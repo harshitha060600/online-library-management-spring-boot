@@ -22,7 +22,7 @@ public class Student {
 	
 	@Id
 	@GeneratedValue(strategy= GenerationType.IDENTITY)
-	private Integer studentID;
+	private Long studentID;
 	
 	private String studentName;
 
@@ -30,6 +30,9 @@ public class Student {
 	private String email;
 	
 	private String mobileNumber;
+
+	@Enumerated(EnumType.STRING)
+	private StudentStatus status;
 
 	@CreationTimestamp
 	private Date createdOn;

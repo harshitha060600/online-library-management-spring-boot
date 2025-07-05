@@ -16,29 +16,29 @@ public class StudentController {
     StudentService studentService;
 
     @PostMapping("/addStudent")
-    public Integer createStudent(@RequestBody CreateStudentRequest createStudentRequest){
+    public Long createStudent(@RequestBody CreateStudentRequest createStudentRequest){
         return studentService.createStudent(createStudentRequest.toStudent());
     }
 
     @GetMapping("/getStudent")
-    public GetStudentDetails getStudentDetails(@RequestParam("id") Integer studentId){
+    public GetStudentDetails getStudentDetails(@RequestParam("id") Long studentId){
         return studentService.getStudentDetails(studentId);
     }
 
 //    @GetMapping("/getStudent")
-//    public StudentDetailsGet getStudentDetails(@RequestParam String studentId){
+//    public StudentDetailsGet getStudentDetails(@RequestParam Long studentId){
 //
 //    }
 
     @PatchMapping("/updateStudent/{studentId}")
     public GetStudentDetails updateStudent(@RequestBody UpdateStudentRequest updateStudentRequest,
-                                           @PathVariable("studentId") Integer studentId){
+                                           @PathVariable("studentId") Long studentId){
         return studentService.updateStudent(updateStudentRequest.toStudent(), studentId);
     }
 
-    @DeleteMapping("/deleteStudent/{studentId}")
-    public GetStudentDetails deleteStudent(@PathVariable("studentId") Integer studentId){
-        studentService.deactivateStudent(studentId);
+    @DeleteMapping("/deleteStudent")
+    public GetStudentDetails deleteStudent(@RequestParam("studentId") Long studentId){
+        return this.studentService.deactivateStudent(studentId);
     }
 
 }

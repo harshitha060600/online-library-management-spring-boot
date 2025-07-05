@@ -1,8 +1,186 @@
 package com.hk.onlineLibraryManagement.services;
 
-import com.hk.onlineLibraryManagement.models.TransactionType;
+import com.hk.onlineLibraryManagement.models.*;
+import com.hk.onlineLibraryManagement.repositories.TransactionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+@Service
 public class TransactionService {
-    public String initiateTxn(Long studentId, Long bookId, TransactionType transactionType) {
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private BookService bookService;
+
+    @Autowired
+    private StudentService studentService;
+
+    @Value("${library.student.bookLimit}")
+    private int bookLimit;
+
+    @Value("${library.days.alowed}")
+    private int daysAllowed;
+
+    @Value("${library.finePerday}")
+    private int finePerday;
+
+    public String initiateTxn(Long studentId, Long bookId, TransactionType transactionType) throws Exception {
+        switch (transactionType){
+            case ISSUANCE:
+                return initiateIssuanceTxn(studentId, bookId);
+            case RETURN:
+                return initiateReturnTxn(studentId, bookId);
+            default:
+                throw new Exception("Invalid transaction type");
+
+        }
     }
+
+    /*
+     * Steps
+     *
+     * 1. Validate book and student
+     * 2. Validate if book is available for issue
+     * 3. Validate student limit
+     * 4. Create a txn with status as pending
+     * 5. make book unavailable and assign it to student
+     * 6. Make the status as success
+     * 7. make it failed and handle accordingly
+     * */
+
+    private String initiateIssuanceTxn(Long studentId, Long bookId) throws Exception {
+
+
+//        ######### DATA RETRIEVAL #########
+
+        Book book = this.bookService.getBookById(bookId);
+        Student student = this.studentService.getStudentDetails(studentId).getStudent();
+
+//        ########. Validations ##########
+
+        if(student == null || student.getStatus() == StudentStatus.INACTIVE){
+            throw new Exception("student is not present or not active");
+        }
+
+        if(book == null || book.getStudent() != null){
+            throw new Exception("book is not available");
+        }
+
+        List<Book> issuedBooks = student.getIssuedBooks();
+        if(issuedBooks != null && issuedBooks.size() > bookLimit){
+            throw new Exception("student issued book limit exceeded");
+        }
+
+//        ISSUANCE logic #############
+
+        Transaction transaction = Transaction.builder()
+                .book(book)
+                .student(student)
+                .transactionType(TransactionType.ISSUANCE)
+                .transactionStatus(TransactionStatus.PENDING)
+                .externalId(UUID.randomUUID().toString())
+                .build();
+
+        transaction = (Transaction) transactionRepository.save(transaction);
+
+        try {
+            book.setStudent(student);
+            book = this.bookService.addOrUpdate(book);
+
+            transaction.setTransactionStatus(TransactionStatus.SUCCESS);
+            transaction = (Transaction) transactionRepository.save(transaction);
+        }catch (Exception e){
+            transaction.setTransactionStatus(TransactionStatus.FAILED);
+            transaction = (Transaction) transactionRepository.save(transaction);
+
+            if(book.getStudent() != null){
+                book.setStudent(null);
+                book = this.bookService.addOrUpdate(book);
+            }
+        }
+
+        return transaction.getExternalId();
+    }
+
+    public String initiateReturnTxn(Long studentId, Long bookId) throws Exception {
+
+
+        //        ######### DATA RETRIEVAL #########
+
+        Book book = this.bookService.getBookById(bookId);
+        Student student = this.studentService.getStudentDetails(studentId).getStudent();
+
+//        ########. Validations ##########
+
+        if(student == null || student.getStatus() == StudentStatus.INACTIVE){
+            throw new Exception("student is not present or not active");
+        }
+
+//        if(book == null || book.getStudent() == null || book.getStudent().getStudentId()!=studentId){
+//            throw new Exception("book is not aligned with student or not present");
+//        }
+        if(book == null || book.getStudent() == null || book.getStudent().getStudentID()!= studentId){
+            throw new Exception("book is not aligned with student or not present");
+        }
+
+//        ##########. Return ############
+
+        Transaction transaction = Transaction.builder()
+                .book(book)
+                .student(student)
+                .transactionType(TransactionType.RETURN)
+                .transactionStatus(TransactionStatus.PENDING)
+                .externalId(UUID.randomUUID().toString())
+                .build();
+
+        transaction = (Transaction) transactionRepository.save(transaction);
+
+        try {
+            Integer fine = this.getFine(book, student);
+            book.setStudent(null);
+            book = this.bookService.addOrUpdate(book);
+
+            transaction.setFine(fine);
+            transaction.setTransactionStatus(TransactionStatus.SUCCESS);
+            transaction = (Transaction) transactionRepository.save(transaction);
+        }catch (Exception e){
+            transaction.setTransactionStatus(TransactionStatus.FAILED);
+            transaction = (Transaction) transactionRepository.save(transaction);
+            if(book.getStudent() == null){
+                book.setStudent(student);
+                this.bookService.addOrUpdate(book);
+            }
+        }
+        return transaction.getExternalId();
+    }
+
+    public Integer getFine(Book book, Student student){
+
+        Transaction issuedTxn = this.transactionRepository.findTopByBookAndStudentAndTransactionTypeAndTransactionStatusOrderByIdDesc(
+                book,student,TransactionType.ISSUANCE,TransactionStatus.SUCCESS
+        );
+
+        Long issuedTimeInMillis = issuedTxn.getUpdatedOn().getTime();
+        Long timePassedInMillis = System.currentTimeMillis() - issuedTimeInMillis;
+
+        Long daysPassed = TimeUnit.DAYS.convert(timePassedInMillis, TimeUnit.MILLISECONDS);
+
+        if(daysPassed >= daysAllowed){
+            return (daysPassed.intValue() - daysAllowed)*finePerday;
+        }
+
+        return 0;
+    }
+
+    public int add(int a, int  b){
+        return a+b+1;
+    }
+
 }

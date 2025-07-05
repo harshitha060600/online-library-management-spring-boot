@@ -1,6 +1,7 @@
 package com.hk.onlineLibraryManagement.DTOs;
 
 import com.hk.onlineLibraryManagement.models.Student;
+import com.hk.onlineLibraryManagement.models.StudentStatus;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,6 +27,7 @@ public class CreateStudentRequest {
                 .studentName(name)
                 .email(email)
                 .mobileNumber(mobile)
+                .status(StudentStatus.ACTIVE)
                 .build();
     }
 

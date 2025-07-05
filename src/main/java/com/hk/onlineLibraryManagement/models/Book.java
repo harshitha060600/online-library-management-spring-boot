@@ -21,9 +21,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(name="book_table")
 public class Book {
 
+//	Book author M:1
+//	Book Student M:1
+//	Book Transaction 1:M
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Integer bookID;
+	private Long bookID;
 	
 	@Column
 	private String bookName;
@@ -47,7 +51,5 @@ public class Book {
 	@JoinColumn
 	@JsonIgnoreProperties("issuedBooks")
 	private Student student;
-	
-	
-	
+
 }
